@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:gravity="center_horizontal"
+    android:padding="25dp"
+    android:background="#121212">
+
+    <ImageView
+        android:id="@+id/imgLogo"
+        android:layout_width="160dp"
+        android:layout_height="160dp"
+        android:layout_marginTop="60dp"
+        android:src="@drawable/foto_logo_anjo"
+        android:contentDescription="Logo Anjo" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Anjo Gestão"
+        android:textColor="#FF9800"
+        android:textSize="32sp"
+        android:textStyle="bold"
+        android:layout_marginTop="15dp" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Sistema de Controle Profissional"
+        android:textColor="#888888"
+        android:textSize="14sp"
+        android:layout_marginBottom="60dp" />
+
+    <Button
+        android:id="@+id/btnnovoservico"
+        android:layout_width="match_parent"
+        android:layout_height="65dp"
+        android:text="Registrar Novo Serviço"
+        android:textSize="16sp"
+        android:textStyle="bold"
+        android:backgroundTint="#FF9800"
+        android:layout_marginBottom="20dp" />
+
+    <Button
+        android:id="@+id/btnVerServicos"
+        android:layout_width="match_parent"
+        android:layout_height="65dp"
+        android:text="Consultar Histórico"
+        android:textSize="16sp"
+        android:backgroundTint="#333333"
+        android:layout_marginBottom="20dp" />
+
+    <Button
+        android:id="@+id/btnRelatorios"
+        android:layout_width="match_parent"
+        android:layout_height="65dp"
+        android:text="Gerar Relatórios PDF"
+        android:textSize="16sp"
+        android:backgroundTint="#333333" />
+
+</LinearLayout>
