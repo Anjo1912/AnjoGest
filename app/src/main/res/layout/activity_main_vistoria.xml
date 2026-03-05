@@ -1,0 +1,125 @@
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#121212"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="20dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="CHECK-IN ANJO - VISTORIA"
+            android:textColor="#FF9800"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:layout_gravity="center"
+            android:layout_marginBottom="20dp"/>
+
+        <EditText
+            android:id="@+id/editNomeVistoria"
+            android:layout_width="match_parent"
+            android:layout_height="55dp"
+            android:hint="Nome do Cliente"
+            android:textColor="#FFFFFF"
+            android:textColorHint="#888888"
+            android:backgroundTint="#FF9800"
+            android:inputType="textCapWords"/>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginTop="10dp">
+
+            <EditText
+                android:id="@+id/editPlacaVistoria"
+                android:layout_width="0dp"
+                android:layout_height="55dp"
+                android:layout_weight="1"
+                android:hint="Placa"
+                android:textColor="#FFFFFF"
+                android:textColorHint="#888888"
+                android:backgroundTint="#FF9800"
+                android:inputType="textCapCharacters"/>
+
+            <EditText
+                android:id="@+id/editKmVistoria"
+                android:layout_width="0dp"
+                android:layout_height="55dp"
+                android:layout_weight="1"
+                android:hint="KM Atual"
+                android:textColor="#FFFFFF"
+                android:textColorHint="#888888"
+                android:backgroundTint="#FF9800"
+                android:inputType="number"
+                android:layout_marginStart="10dp"/>
+        </LinearLayout>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="FOTOS OBRIGATÓRIAS"
+            android:textColor="#FF9800"
+            android:textStyle="bold"
+            android:layout_marginTop="25dp"
+            android:layout_marginBottom="10dp"/>
+
+        <GridLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:columnCount="2"
+            android:rowCount="3"
+            android:alignmentMode="alignMargins">
+
+            <Button android:id="@+id/btnFotoPainelOff" android:text="Painel (OFF)" android:layout_width="0dp" android:layout_columnWeight="1" android:backgroundTint="#444444" android:layout_margin="5dp"/>
+            <Button android:id="@+id/btnFotoPainelOn" android:text="Painel (ON)" android:layout_width="0dp" android:layout_columnWeight="1" android:backgroundTint="#444444" android:layout_margin="5dp"/>
+            <Button android:id="@+id/btnFotoFrente" android:text="Frente" android:layout_width="0dp" android:layout_columnWeight="1" android:backgroundTint="#444444" android:layout_margin="5dp"/>
+            <Button android:id="@+id/btnFotoTras" android:text="Traseira" android:layout_width="0dp" android:layout_columnWeight="1" android:backgroundTint="#444444" android:layout_margin="5dp"/>
+        </GridLayout>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="OBSERVAÇÕES DE DANOS"
+            android:textColor="#FF9800"
+            android:textStyle="bold"
+            android:layout_marginTop="20dp"/>
+
+        <EditText
+            android:id="@+id/editObsVistoria"
+            android:layout_width="match_parent"
+            android:layout_height="100dp"
+            android:hint="Descreva amassados, riscos ou trincas já existentes..."
+            android:textColor="#FFFFFF"
+            android:textColorHint="#888888"
+            android:backgroundTint="#FF9800"
+            android:gravity="top"
+            android:layout_marginTop="5dp"
+            android:padding="10dp"/>
+
+        <Button
+            android:id="@+id/btnAbrirTelaAssinatura"
+            android:layout_width="match_parent"
+            android:layout_height="60dp"
+            android:text="CLIQUE AQUI PARA ASSINAR"
+            android:layout_marginTop="20dp"
+            android:backgroundTint="#444444"/>
+
+        <Button
+            android:id="@+id/btnIrParaAssinatura"
+            android:layout_width="match_parent"
+            android:layout_height="65dp"
+            android:text="FINALIZAR E GERAR PDF"
+            android:backgroundTint="#FF9800"
+            android:textColor="#000000"
+            android:textStyle="bold"
+            android:layout_marginTop="30dp"
+            android:layout_marginBottom="20dp"/>
+
+    </LinearLayout>
+</ScrollView>

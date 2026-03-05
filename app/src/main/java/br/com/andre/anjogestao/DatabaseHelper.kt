@@ -4,96 +4,94 @@ import android.content.ContentValues
 import android.content.Context
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
+import android.util.Log
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
-class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, "AnjoGestao.db", null, 4) {
+// Subimos para a versão 12 para forçar o Android a criar as tabelas corretamente
+class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, "AnjoGestao.db", null, 12) {
 
     override fun onCreate(db: SQLiteDatabase) {
-        val createTable = """
-            CREATE TABLE servicos (
+        // Tabela de Serviços
+        db.execSQL("CREATE TABLE IF NOT EXISTS servicos (id INTEGER PRIMARY KEY AUTOINCREMENT, loja TEXT, modelo TEXT, servico TEXT, valor REAL, status TEXT, data TEXT)")
+
+        // Tabela de Vistorias
+        db.execSQL("""
+            CREATE TABLE IF NOT EXISTS vistorias (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                loja TEXT, modelo TEXT, servico TEXT, valor REAL, status TEXT, data TEXT
+                cliente TEXT, placa TEXT, km TEXT,
+                path_p_off TEXT, path_p_on TEXT, path_frente TEXT, path_tras TEXT,
+                path_assinatura TEXT, observacoes TEXT, data_hora TEXT
             )
-        """.trimIndent()
-        db.execSQL(createTable)
+        """)
     }
 
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
-        db.execSQL("DROP TABLE IF EXISTS servicos")
-        onCreate(db)
+        if (oldVersion < 12) {
+            // Se a tabela de vistorias não existia nas versões anteriores, criamos agora
+            db.execSQL("DROP TABLE IF EXISTS vistorias")
+            onCreate(db)
+        }
     }
 
+    // --- 1. SALVAR NOVO SERVIÇO ---
     fun salvarServico(loja: String, modelo: String, servico: String, valor: Double, status: String, data: String): Boolean {
         val db = this.writableDatabase
-        val values = ContentValues().apply {
-            put("loja", loja); put("modelo", modelo); put("servico", servico)
-            put("valor", valor); put("status", status); put("data", data)
+        val v = ContentValues().apply {
+            put("loja", loja)
+            put("modelo", modelo)
+            put("servico", servico)
+            put("valor", valor)
+            put("status", status)
+            put("data", data)
         }
-        return db.insert("servicos", null, values) != -1L
+        val resultado = db.insert("servicos", null, v)
+        if (resultado == -1L) Log.e("DB_ERROR", "Falha ao inserir serviço")
+        return resultado != -1L
     }
 
-    fun buscarServicosPorLojaParaLista(nomeLoja: String): List<Map<String, Any>> {
-        val lista = mutableListOf<Map<String, Any>>()
-        val db = this.readableDatabase
-        val query = if (nomeLoja == "Todas as Lojas") "SELECT * FROM servicos ORDER BY id DESC"
-        else "SELECT * FROM servicos WHERE loja = ? ORDER BY id DESC"
-        val cursor = db.rawQuery(query, if (nomeLoja == "Todas as Lojas") null else arrayOf(nomeLoja))
-        if (cursor.moveToFirst()) {
-            do {
-                val mapa = mutableMapOf<String, Any>()
-                mapa["id"] = cursor.getInt(cursor.getColumnIndexOrThrow("id"))
-                mapa["loja"] = cursor.getString(cursor.getColumnIndexOrThrow("loja"))
-                mapa["modelo"] = cursor.getString(cursor.getColumnIndexOrThrow("modelo"))
-                mapa["servico"] = cursor.getString(cursor.getColumnIndexOrThrow("servico"))
-                mapa["valor"] = cursor.getDouble(cursor.getColumnIndexOrThrow("valor"))
-                mapa["status"] = cursor.getString(cursor.getColumnIndexOrThrow("status")) ?: "Pendente"
-                mapa["data"] = cursor.getString(cursor.getColumnIndexOrThrow("data"))
-                lista.add(mapa)
-            } while (cursor.moveToNext())
+    // --- 2. ATUALIZAR SERVIÇO (EDIÇÃO) ---
+    fun atualizarServicoCompleto(id: Int, loja: String, modelo: String, servico: String, valor: Double): Boolean {
+        val db = this.writableDatabase
+        val v = ContentValues().apply {
+            put("loja", loja)
+            put("modelo", modelo)
+            put("servico", servico)
+            put("valor", valor)
         }
-        cursor.close()
-        return lista
+        return db.update("servicos", v, "id = ?", arrayOf(id.toString())) > 0
     }
 
-    fun buscarServicosRelatorio(nomeLoja: String, periodo: String, apenasPendentes: Boolean = false): List<Map<String, Any>> {
+    // --- 3. ATUALIZAR STATUS (PAGO/PENDENTE) ---
+    fun atualizarStatus(id: Int, novoStatus: String): Boolean {
+        val db = this.writableDatabase
+        val v = ContentValues().apply { put("status", novoStatus) }
+        return db.update("servicos", v, "id = ?", arrayOf(id.toString())) > 0
+    }
+
+    // --- 4. BUSCAR PARA LISTAGEM E RELATÓRIO ---
+    fun buscarServicosRelatorio(loja: String, periodo: String, apenasPendentes: Boolean = false): List<Map<String, Any>> {
         val lista = mutableListOf<Map<String, Any>>()
         val db = this.readableDatabase
-        val sdf = java.text.SimpleDateFormat("dd/MM/yyyy", java.util.Locale.getDefault())
-        val hoje = sdf.format(java.util.Date())
-
         var query = "SELECT * FROM servicos WHERE 1=1"
-        val args = mutableListOf<String>()
 
-        if (nomeLoja != "Todas as Lojas") {
-            query += " AND loja = ?"
-            args.add(nomeLoja)
-        }
-
-        if (apenasPendentes) {
-            query += " AND (status = 'Pendente' OR status IS NULL OR status = '')"
-        }
-
-        if (periodo == "HOJE") {
-            query += " AND data LIKE ?"
-            args.add("$hoje%")
-        } else if (periodo == "SEMANA") {
-            query += " AND substr(data,7,4)||'-'||substr(data,4,2)||'-'||substr(data,1,2) >= date('now', '-7 days')"
-        }
+        if (loja != "Todas as Lojas") query += " AND loja = '$loja'"
+        if (apenasPendentes) query += " AND (status = 'Pendente' OR status IS NULL OR status = '')"
 
         query += " ORDER BY id DESC"
 
-        val cursor = db.rawQuery(query, if (args.isEmpty()) null else args.toTypedArray())
+        val cursor = db.rawQuery(query, null)
         if (cursor.moveToFirst()) {
             do {
-                // Dentro de buscarServicosRelatorio no DatabaseHelper:
                 val mapa = mutableMapOf<String, Any>()
-                mapa["id"] = cursor.getInt(cursor.getColumnIndexOrThrow("id"))
-                mapa["loja"] = cursor.getString(cursor.getColumnIndexOrThrow("loja"))
-                mapa["modelo"] = cursor.getString(cursor.getColumnIndexOrThrow("modelo"))
-                mapa["servico"] = cursor.getString(cursor.getColumnIndexOrThrow("servico"))
-                mapa["valor"] = cursor.getDouble(cursor.getColumnIndexOrThrow("valor"))
-// ESTA LINHA ABAIXO É A MAIS IMPORTANTE:
-                mapa["status"] = cursor.getString(cursor.getColumnIndexOrThrow("status")) ?: "Pendente"
-                mapa["data"] = cursor.getString(cursor.getColumnIndexOrThrow("data"))
+                mapa["id"] = cursor.getInt(0)
+                mapa["loja"] = cursor.getString(1)
+                mapa["modelo"] = cursor.getString(2)
+                mapa["servico"] = cursor.getString(3)
+                mapa["valor"] = cursor.getDouble(4)
+                mapa["status"] = cursor.getString(5) ?: "Pendente"
+                mapa["data"] = cursor.getString(6)
                 lista.add(mapa)
             } while (cursor.moveToNext())
         }
@@ -101,15 +99,26 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, "AnjoGestao.d
         return lista
     }
 
-    // FUNÇÃO QUE ESTAVA FALTANDO E DANDO ERRO NA RELATORIOSACTIVITY
-    fun atualizarStatus(id: Int, novoStatus: String) {
-        val db = this.writableDatabase
-        val values = ContentValues()
-        values.put("status", novoStatus)
-        db.update("servicos", values, "id = ?", arrayOf(id.toString()))
-    }
+    fun buscarServicosPorLojaParaLista(loja: String) = buscarServicosRelatorio(loja, "TODOS", false)
 
-    fun excluirServico(id: Int): Boolean {
-        return this.writableDatabase.delete("servicos", "id = ?", arrayOf(id.toString())) > 0
+    fun excluirServico(id: Int) = this.writableDatabase.delete("servicos", "id = ?", arrayOf(id.toString())) > 0
+
+    // --- 5. SALVAR VISTORIA (FOTOS E ASSINATURA) ---
+    fun salvarVistoriaCompleta(cliente: String, placa: String, km: String, pOff: String?, pOn: String?, frente: String?, tras: String?, ass: String?, obs: String): Boolean {
+        val db = this.writableDatabase
+        val v = ContentValues().apply {
+            put("cliente", cliente)
+            put("placa", placa)
+            put("km", km)
+            put("path_p_off", pOff)
+            put("path_p_on", pOn)
+            put("path_frente", frente)
+            put("path_tras", tras)
+            put("path_assinatura", ass)
+            put("observacoes", obs)
+            put("data_hora", SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault()).format(Date()))
+        }
+        val resultado = db.insert("vistorias", null, v)
+        return resultado != -1L
     }
 }

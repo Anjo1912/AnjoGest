@@ -35,7 +35,6 @@ class RelatoriosActivity : AppCompatActivity() {
         val adapter = ArrayAdapter(this, R.layout.item_loja_spinner, lojas)
         spinnerLojasRelatorio.adapter = adapter
 
-        // Atualiza a lista automaticamente ao mudar a loja no Spinner
         spinnerLojasRelatorio.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
             override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
                 atualizarTela()
@@ -43,46 +42,33 @@ class RelatoriosActivity : AppCompatActivity() {
             override fun onNothingSelected(parent: AdapterView<*>?) {}
         }
 
-        // Botões de Filtro de Período
-        findViewById<Button>(R.id.btnFiltroHoje).setOnClickListener {
-            filtroPeriodoAtual = "HOJE"
-            atualizarTela()
-        }
-        findViewById<Button>(R.id.btnFiltroSemana).setOnClickListener {
-            filtroPeriodoAtual = "SEMANA"
-            atualizarTela()
-        }
-        findViewById<Button>(R.id.btnFiltroTodos).setOnClickListener {
-            filtroPeriodoAtual = "TODOS"
-            atualizarTela()
-        }
+        // BOTOES DE FILTRO
+        findViewById<Button>(R.id.btnFiltroHoje).setOnClickListener { filtroPeriodoAtual = "HOJE"; atualizarTela() }
+        findViewById<Button>(R.id.btnFiltroSemana).setOnClickListener { filtroPeriodoAtual = "SEMANA"; atualizarTela() }
+        findViewById<Button>(R.id.btnFiltroTodos).setOnClickListener { filtroPeriodoAtual = "TODOS"; atualizarTela() }
 
-        // --- BOTÃO GERAR PDF (Apenas gera, sem dar baixa automática) ---
+        // BOTÃO GERAR PDF (Apenas gera Pendentes)
         findViewById<Button>(R.id.btnGerarPDF).setOnClickListener {
             val lojaSelecionada = spinnerLojasRelatorio.selectedItem.toString()
-
-            // Busca apenas Pendentes da loja selecionada
             val listaParaPdf = db.buscarServicosRelatorio(lojaSelecionada, filtroPeriodoAtual, true)
 
             if (listaParaPdf.isNotEmpty()) {
                 gerarEPresentarPDF(listaParaPdf)
-
-                // Removido o loop que mudava o status para "Pago" automaticamente.
-                // Agora você tem o controle manual no histórico!
-
-                Toast.makeText(this, "PDF Gerado! Lembre-se de dar baixa no histórico após receber.", Toast.LENGTH_LONG).show()
+                Toast.makeText(this, "PDF Gerado! Dê baixa manual no histórico.", Toast.LENGTH_LONG).show()
             } else {
                 Toast.makeText(this, "Nada pendente para $lojaSelecionada!", Toast.LENGTH_SHORT).show()
             }
         }
-
         atualizarTela()
     }
 
     private fun atualizarTela() {
         val loja = spinnerLojasRelatorio.selectedItem.toString()
-        val lista = db.buscarServicosRelatorio(loja, filtroPeriodoAtual)
-        recycler.adapter = ServicoAdapter(lista.toMutableList())
+        // CORREÇÃO AQUI: Nome da variável alinhado com o que o Adapter recebe
+        val listaParaAdapter = db.buscarServicosRelatorio(loja, filtroPeriodoAtual).toMutableList()
+        recycler.adapter = ServicoAdapter(listaParaAdapter) {
+            // Fica vazio pois no relatório não precisamos de clique longo
+        }
     }
 
     fun gerarEPresentarPDF(listaServicos: List<Map<String, Any>>) {
@@ -149,7 +135,6 @@ class RelatoriosActivity : AppCompatActivity() {
             compartilharPDF(arquivo)
         } catch (e: Exception) {
             e.printStackTrace()
-            Toast.makeText(this, "Erro ao salvar PDF", Toast.LENGTH_SHORT).show()
         }
     }
 

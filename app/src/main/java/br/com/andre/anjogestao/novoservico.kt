@@ -13,6 +13,7 @@ class novoservico : AppCompatActivity() {
 
     private var valorTotal = 0.0
     private lateinit var db: DatabaseHelper
+    private var idServicoEdicao: Int = -1 // Variável para controlar se é edição
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -20,30 +21,27 @@ class novoservico : AppCompatActivity() {
 
         db = DatabaseHelper(this)
 
+        // Captura o ID vindo da ListagemActivity (se não vier nada, o padrão é -1)
+        idServicoEdicao = intent.getIntExtra("ID_SERVICO", -1)
+
         // Elementos Básicos
         val spinnerLojas = findViewById<Spinner>(R.id.spinnerLojas)
         val editModelo = findViewById<AutoCompleteTextView>(R.id.editModelo)
         val txtTotal = findViewById<TextView>(R.id.txtTotal)
         val btnSalvar = findViewById<Button>(R.id.btnSalvarServico)
 
-        // Checkboxes Insulfilm
+        // Checkboxes e Elementos Extras
         val cbSemParaBrisa = findViewById<CheckBox>(R.id.cbSemParaBrisa)
         val cbCompleto = findViewById<CheckBox>(R.id.cbCompleto)
         val cbParaBrisa = findViewById<CheckBox>(R.id.cbParaBrisa)
         val cbTraseiro = findViewById<CheckBox>(R.id.cbTraseiro)
-
-        // Elementos Envelopamento
         val cbEnvelopamento = findViewById<CheckBox>(R.id.cbEnvelopamento)
         val layoutExtraEnv = findViewById<LinearLayout>(R.id.layoutExtraEnvelopamento)
         val editDetalheEnv = findViewById<EditText>(R.id.editDetalheEnvelopamento)
         val editValorEnv = findViewById<EditText>(R.id.editValorEnvelopamento)
-
-        // Elementos Por Porta
         val cbPorPorta = findViewById<CheckBox>(R.id.cbPorPorta)
         val layoutExtraPorta = findViewById<LinearLayout>(R.id.layoutExtraPorta)
         val editQtdPortas = findViewById<EditText>(R.id.editQtdPortas)
-
-        // Elementos Extraordinários
         val cbExtraordinario = findViewById<CheckBox>(R.id.cbExtraordinario)
         val layoutExtraExtra = findViewById<LinearLayout>(R.id.layoutExtraExtra)
         val editDetalheExtra = findViewById<EditText>(R.id.editDetalheExtra)
@@ -54,40 +52,52 @@ class novoservico : AppCompatActivity() {
         val adapterLojas = ArrayAdapter(this, R.layout.item_loja_spinner, lojas)
         spinnerLojas.adapter = adapterLojas
 
-        val checksFixo = listOf(cbSemParaBrisa, cbCompleto, cbParaBrisa, cbTraseiro)
-
-        // FUNÇÃO DE CÁLCULO
+        // --- FUNÇÃO DE CÁLCULO ---
         fun calcular() {
             valorTotal = 0.0
-
-            // 1. Fixos Insulfilm
             if (cbSemParaBrisa.isChecked) valorTotal += 100.0
             if (cbCompleto.isChecked) valorTotal += 150.0
             if (cbParaBrisa.isChecked) valorTotal += 50.0
             if (cbTraseiro.isChecked) valorTotal += 50.0
 
-            // 2. Envelopamento
             if (cbEnvelopamento.isChecked) {
                 valorTotal += editValorEnv.text.toString().toDoubleOrNull() ?: 0.0
             }
-
-            // 3. Por Porta (R$ 30 cada)
             if (cbPorPorta.isChecked) {
                 val qtd = editQtdPortas.text.toString().toIntOrNull() ?: 0
                 valorTotal += (qtd * 30.0)
             }
-
-            // 4. Extraordinários
             if (cbExtraordinario.isChecked) {
                 valorTotal += editValorExtra.text.toString().toDoubleOrNull() ?: 0.0
             }
-
             txtTotal.text = String.format("R$ %.2f", valorTotal)
         }
 
-        // CONFIGURAÇÃO DOS OUVIINTES
-        checksFixo.forEach { it.setOnCheckedChangeListener { _, _ -> calcular() } }
+        // --- LÓGICA DE PREENCHIMENTO PARA EDIÇÃO ---
+        if (idServicoEdicao != -1) {
+            btnSalvar.text = "ATUALIZAR SERVIÇO"
 
+            // Preenche Modelo e seleciona Loja
+            editModelo.setText(intent.getStringExtra("MODELO"))
+            val lojaSalva = intent.getStringExtra("LOJA")
+            val posicao = lojas.indexOf(lojaSalva)
+            if (posicao >= 0) spinnerLojas.setSelection(posicao)
+
+            // Coloca os dados antigos no campo Extra para facilitar
+            cbExtraordinario.isChecked = true
+            layoutExtraExtra.visibility = View.VISIBLE
+            editDetalheExtra.setText(intent.getStringExtra("SERVICO"))
+
+            // Recupera o valor e já atualiza o cálculo
+            val valorSalvo = intent.getDoubleExtra("VALOR", 0.0)
+            editValorExtra.setText(valorSalvo.toString())
+
+            calcular()
+        }
+
+        // --- CONFIGURAÇÃO DOS OUVINTES ---
+        val checksFixo = listOf(cbSemParaBrisa, cbCompleto, cbParaBrisa, cbTraseiro)
+        checksFixo.forEach { it.setOnCheckedChangeListener { _, _ -> calcular() } }
         cbEnvelopamento.setOnCheckedChangeListener { _, isChecked ->
             layoutExtraEnv.visibility = if (isChecked) View.VISIBLE else View.GONE
             calcular()
@@ -101,46 +111,101 @@ class novoservico : AppCompatActivity() {
             calcular()
         }
 
-        // Atualizar total ao digitar valores ou quantidades
         editValorEnv.addTextChangedListener { calcular() }
         editQtdPortas.addTextChangedListener { calcular() }
         editValorExtra.addTextChangedListener { calcular() }
 
-        // SALVAR
+        // --- SALVAR OU ATUALIZAR ---
+        // --- SALVAR OU ATUALIZAR COM CONFIRMAÇÃO ---
         btnSalvar.setOnClickListener {
             val lojaSelecionada = spinnerLojas.selectedItem.toString()
             val modeloDigitado = editModelo.text.toString()
 
+            // Validação básica para seu serviço de insulfilm
             if (modeloDigitado.isEmpty() || valorTotal == 0.0) {
-                Toast.makeText(this, "Preencha o modelo e escolha um serviço!", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "Preencha o modelo e o valor!", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
 
-            // Montar Descrição Final
-            val servicos = mutableListOf<String>()
-            if (cbSemParaBrisa.isChecked) servicos.add("S/ Para-brisa")
-            if (cbCompleto.isChecked) servicos.add("Completo")
-            if (cbParaBrisa.isChecked) servicos.add("Apenas Para-brisa")
-            if (cbTraseiro.isChecked) servicos.add("Apenas Traseiro")
-            if (cbPorPorta.isChecked) servicos.add("${editQtdPortas.text} Portas")
-            if (cbEnvelopamento.isChecked) servicos.add("Env: ${editDetalheEnv.text}")
-            if (cbExtraordinario.isChecked) servicos.add("Extra: ${editDetalheExtra.text}")
+            // Define os textos baseados se é um novo registro ou edição
+            val tituloDialog =
+                if (idServicoEdicao == -1) "Confirmar Registro" else "Confirmar Alteração"
+            val mensagemDialog = if (idServicoEdicao == -1)
+                "Deseja realmente SALVAR este novo serviço?"
+            else
+                "Deseja realmente SALVAR as alterações deste serviço?"
 
-            val servicosFinal = servicos.joinToString(", ")
-            val dataAtual = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault()).format(Date())
+            val textoBotaoPositivo = if (idServicoEdicao == -1) "Sim, Salvar" else "Sim, Editar"
 
+            // CRIANDO O ALERTA DE CONFIRMAÇÃO QUE VOCÊ PEDIU
             AlertDialog.Builder(this)
-                .setTitle("Confirmar Registro")
-                .setMessage("Loja: $lojaSelecionada\nCarro: $modeloDigitado\nTotal: R$ ${String.format("%.2f", valorTotal)}")
-                .setPositiveButton("Salvar") { _, _ ->
-                    val sucesso = db.salvarServico(lojaSelecionada, modeloDigitado, servicosFinal, valorTotal, "Pendente", dataAtual)
-                    if (sucesso) {
-                        Toast.makeText(this, "Salvo com sucesso!", Toast.LENGTH_SHORT).show()
-                        finish()
+                .setTitle(tituloDialog)
+                .setMessage(
+                    "$mensagemDialog\n\nCarro: $modeloDigitado\nTotal: R$ ${
+                        String.format(
+                            "%.2f",
+                            valorTotal
+                        )
+                    }"
+                )
+                .setPositiveButton(textoBotaoPositivo) { _, _ ->
+
+                    // LÓGICA DE COLETA DOS SERVIÇOS
+                    val servicosEditados = mutableListOf<String>()
+                    if (cbSemParaBrisa.isChecked) servicosEditados.add("S/ Para-brisa")
+                    if (cbCompleto.isChecked) servicosEditados.add("Completo")
+                    if (cbParaBrisa.isChecked) servicosEditados.add("Apenas Para-brisa")
+                    if (cbTraseiro.isChecked) servicosEditados.add("Apenas Traseiro")
+                    if (cbPorPorta.isChecked) servicosEditados.add("${editQtdPortas.text} Portas")
+                    if (cbEnvelopamento.isChecked) servicosEditados.add("Env: ${editDetalheEnv.text}")
+                    if (cbExtraordinario.isChecked) servicosEditados.add("${editDetalheExtra.text}")
+
+                    val servicosFinal = servicosEditados.joinToString(", ")
+                    val dataAtual =
+                        SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault()).format(Date())
+
+                    if (idServicoEdicao == -1) {
+                        // TENTA SALVAR NO BANCO
+                        val salvou = db.salvarServico(
+                            lojaSelecionada,
+                            modeloDigitado,
+                            servicosFinal,
+                            valorTotal,
+                            "Pendente",
+                            dataAtual
+                        )
+                        if (salvou) {
+                            Toast.makeText(this, "Serviço salvo com sucesso!", Toast.LENGTH_SHORT)
+                                .show()
+                            finish() // Fecha a tela e volta para a lista
+                        } else {
+                            Toast.makeText(
+                                this,
+                                "Erro técnico ao salvar no banco!",
+                                Toast.LENGTH_LONG
+                            ).show()
+                        }
+                    } else {
+                        // TENTA ATUALIZAR (EDIÇÃO)
+                        val editou = db.atualizarServicoCompleto(
+                            idServicoEdicao,
+                            lojaSelecionada,
+                            modeloDigitado,
+                            servicosFinal,
+                            valorTotal
+                        )
+                        if (editou) {
+                            Toast.makeText(this, "Serviço editado com sucesso!", Toast.LENGTH_SHORT)
+                                .show()
+                            finish()
+                        } else {
+                            Toast.makeText(this, "Erro ao atualizar os dados!", Toast.LENGTH_LONG)
+                                .show()
+                        }
                     }
                 }
-                .setNegativeButton("Editar", null)
-                .show()
+                .setNegativeButton("Cancelar", null)
+                .show() // IMPORTANTE: Sem o .show() o diálogo não aparece e nada acontece!
         }
     }
 }

@@ -1,91 +1,91 @@
 package br.com.andre.anjogestao
 
-import android.graphics.Color
+import android.content.Intent
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
-import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.recyclerview.widget.RecyclerView
 
-class ServicoAdapter(private var lista: MutableList<Map<String, Any>>) :
-    RecyclerView.Adapter<ServicoAdapter.ServicoViewHolder>() {
+class ServicoAdapter(
+    private val lista: MutableList<Map<String, Any>>,
+    private val onStatusChanged: (Map<String, Any>) -> Unit // Apenas para avisar a Activity de mudanças
+) : RecyclerView.Adapter<ServicoAdapter.ServicoViewHolder>() {
 
     class ServicoViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         val txtModelo: TextView = view.findViewById(R.id.txtItemModelo)
         val txtServico: TextView = view.findViewById(R.id.txtItemServico)
         val txtValor: TextView = view.findViewById(R.id.txtItemValor)
-        val txtData: TextView = view.findViewById(R.id.txtItemData)
-        val txtLoja: TextView = view.findViewById(R.id.txtItemLoja)
-        // CORREÇÃO 1: Adicionado o campo de Status que faltava aqui
         val txtStatus: TextView = view.findViewById(R.id.txtItemStatus)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ServicoViewHolder {
-        val view = LayoutInflater.from(parent.context)
-            .inflate(R.layout.item_servico, parent, false)
-        return ServicoViewHolder(view)
+        val v = LayoutInflater.from(parent.context).inflate(R.layout.item_servico, parent, false)
+        return ServicoViewHolder(v)
     }
 
     override fun onBindViewHolder(holder: ServicoViewHolder, position: Int) {
         val item = lista[position]
-        val id = item["id"] as? Int ?: -1
+        val context = holder.itemView.context
+        val db = DatabaseHelper(context)
 
-        // Pega o status do banco de dados
-        val statusAtual = item["status"]?.toString() ?: "Pendente"
+        val id = item["id"] as Int
+        val loja = item["loja"] as String
+        val modelo = item["modelo"] as String
+        val servico = item["servico"] as String
+        val valor = item["valor"] as Double
+        val status = item["status"] as String
 
-        // CORREÇÃO 2: Define o texto e a cor corretamente
-        holder.txtStatus.text = statusAtual
+        holder.txtModelo.text = modelo
+        holder.txtServico.text = servico
+        holder.txtValor.text = "R$ ${String.format("%.2f", valor)}"
+        holder.txtStatus.text = status
 
-        if (statusAtual == "Pago") {
-            holder.txtStatus.setTextColor(Color.parseColor("#4CAF50"))  // Verde
-        } else {
-            holder.txtStatus.setTextColor(Color.parseColor("#FF5252")) // Vermelho
-        }
-        holder.txtStatus.setOnClickListener {
-            val context = holder.itemView.context
-            if (statusAtual == "Pendente") {
-                AlertDialog.Builder(context)
-                    .setTitle("Confirmar Pagamento")
-                    .setMessage("Deseja marcar o serviço do ${holder.txtModelo.text} como PAGO?")
-                    .setPositiveButton("Sim, pago") { _, _ ->
-                        val db = DatabaseHelper(context)
-                        db.atualizarStatus(id, "Pago") // Muda no banco
-
-                        // Atualiza a cor e o texto na tela na hora
-                        holder.txtStatus.text = "Pago"
-                        holder.txtStatus.setTextColor(android.graphics.Color.parseColor("#4CAF50"))
-                        Toast.makeText(context, "Status atualizado!", Toast.LENGTH_SHORT).show()
-                    }
-                    .setNegativeButton("Ainda não", null)
-                    .show()
-            }
-        }
-
-        holder.txtModelo.text = item["modelo"]?.toString() ?: "Sem Modelo"
-        holder.txtServico.text = item["servico"]?.toString() ?: "Sem Descrição"
-        holder.txtLoja.text = item["loja"]?.toString() ?: "Loja N/A"
-
-        val valor = item["valor"] as? Double ?: 0.0
-        holder.txtValor.text = String.format("R$ %.2f", valor)
-        holder.txtData.text = item["data"]?.toString() ?: ""
-
-        // Segurar o dedo para excluir
         holder.itemView.setOnLongClickListener {
-            val context = holder.itemView.context
+            val opcoes = arrayOf("Editar Serviço", "Excluir Serviço", "Mudar Status", "Cancelar")
+
             AlertDialog.Builder(context)
-                .setTitle("Excluir Serviço")
-                .setMessage("Deseja apagar o registro do ${holder.txtModelo.text}?")
-                .setPositiveButton("Sim, excluir") { _, _ ->
-                    val db = DatabaseHelper(context)
-                    if (db.excluirServico(id)) {
-                        lista.removeAt(holder.adapterPosition)
-                        notifyItemRemoved(holder.adapterPosition)
-                        Toast.makeText(context, "Excluído com sucesso!", Toast.LENGTH_SHORT).show()
+                .setTitle("Opções do Serviço")
+                .setItems(opcoes) { _, which ->
+                    when (which) {
+                        0 -> { // EDITAR
+                            val intent = Intent(context, novoservico::class.java)
+                            intent.putExtra("ID_SERVICO", id); intent.putExtra("LOJA", loja)
+                            intent.putExtra("MODELO", modelo); intent.putExtra("SERVICO", servico)
+                            intent.putExtra("VALOR", valor)
+                            context.startActivity(intent)
+                        }
+                        1 -> { // EXCLUIR
+                            AlertDialog.Builder(context)
+                                .setTitle("Confirmar Exclusão")
+                                .setMessage("Deseja realmente apagar este serviço de $modelo?")
+                                .setPositiveButton("Sim") { _, _ ->
+                                    if (db.excluirServico(id)) {
+                                        lista.removeAt(position)
+                                        notifyItemRemoved(position)
+                                        notifyItemRangeChanged(position, lista.size)
+                                    }
+                                }
+                                .setNegativeButton("Não", null).show()
+                        }
+                        2 -> { // MUDAR STATUS (Com a confirmação que você pediu)
+                            val novoStatus = if (status == "Pago") "Pendente" else "Pago"
+
+                            AlertDialog.Builder(context)
+                                .setTitle("Alterar Pagamento")
+                                .setMessage("O serviço está $status. Mudar para $novoStatus?")
+                                .setPositiveButton("Sim, Alterar") { _, _ ->
+                                    if (db.atualizarStatus(id, novoStatus)) {
+                                        (item as MutableMap<String, Any>)["status"] = novoStatus
+                                        notifyItemChanged(position)
+                                        onStatusChanged(item) // Avisa a Activity para atualizar filtros
+                                    }
+                                }
+                                .setNegativeButton("Sair", null).show()
+                        }
                     }
                 }
-                .setNegativeButton("Cancelar", null)
                 .show()
             true
         }

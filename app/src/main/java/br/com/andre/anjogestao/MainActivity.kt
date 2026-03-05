@@ -21,6 +21,16 @@ class MainActivity : AppCompatActivity() {
             startActivity(Intent(this, RelatoriosActivity::class.java))
         }
 
+        // --- NOVO: Botão para abrir a Área Cliente Black ---
+        findViewById<Button>(R.id.btnClienteBlack).setOnClickListener {
+            val intent = Intent(this, ClienteBlackActivity::class.java)
+            startActivity(intent)
+        }
+        findViewById<Button>(R.id.btnAbrirCheckIn).setOnClickListener {
+            val intent = Intent(this, VistoriaActivity::class.java)
+            startActivity(intent)
+        }
+
         // Botão CONSULTAR HISTÓRICO com seletor de loja
         findViewById<Button>(R.id.btnVerServicos).setOnClickListener {
             val lojas = arrayOf("Todas as Lojas", "Anjo - IE Auto", "Universound", "Rota do Som")
@@ -37,5 +47,5 @@ class MainActivity : AppCompatActivity() {
             }
             builder.show()
         }
-    } // Aqui fecha o onCreate
-} // Aqui fecha a classe MainActivity
+    }
+}
