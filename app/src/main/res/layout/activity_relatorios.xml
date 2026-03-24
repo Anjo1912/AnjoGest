@@ -16,42 +16,13 @@
         android:layout_gravity="center"
         android:layout_marginBottom="25dp" />
 
-    <LinearLayout
-        android:layout_width="match_parent"
+    <TextView
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="center"
-        android:layout_marginBottom="20dp">
-
-        <Button
-            android:id="@+id/btnFiltroHoje"
-            android:layout_width="0dp"
-            android:layout_height="55dp"
-            android:layout_weight="1"
-            android:text="HOJE"
-            android:textSize="12sp"
-            android:backgroundTint="#1E1E1E"
-            android:layout_marginEnd="5dp" />
-
-        <Button
-            android:id="@+id/btnFiltroSemana"
-            android:layout_width="0dp"
-            android:layout_height="55dp"
-            android:layout_weight="1.2"
-            android:text="SEMANA"
-            android:textSize="12sp"
-            android:backgroundTint="#1E1E1E"
-            android:layout_marginEnd="5dp" />
-
-        <Button
-            android:id="@+id/btnFiltroTodos"
-            android:layout_width="0dp"
-            android:layout_height="55dp"
-            android:layout_weight="1"
-            android:text="TODOS"
-            android:textSize="12sp"
-            android:backgroundTint="#1E1E1E" />
-    </LinearLayout>
+        android:text="Selecione a Loja para Cobrança:"
+        android:textColor="#BBBBBB"
+        android:textSize="14sp"
+        android:layout_marginBottom="5dp" />
 
     <Spinner
         android:id="@+id/spinnerLojasRelatorio"

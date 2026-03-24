@@ -16,9 +16,139 @@
         android:textStyle="bold"
         android:layout_marginBottom="15dp" />
 
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/recyclerTodosServicos"
+    <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent" />
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="15dp"
+        android:background="#1E1E1E"
+        android:layout_marginBottom="20dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="10dp">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:text="Análise Mensal"
+                android:textColor="#BBBBBB"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+
+            <Spinner
+                android:id="@+id/spinnerMeses"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:backgroundTint="#FFFFFF" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/txtProgressoMeta"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Meta: R$ 0,00 de R$ 5.000,00"
+            android:textColor="#FFFFFF"
+            android:textStyle="bold"
+            android:textSize="16sp"/>
+
+        <ProgressBar
+            android:id="@+id/barraProgressoMeta"
+            style="?android:attr/progressBarStyleHorizontal"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:max="5000"
+            android:progress="0"
+            android:progressTint="#4CAF50"/>
+
+        <TextView
+            android:id="@+id/txtStatusMeta"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Selecione um mês..."
+            android:textColor="#BBBBBB"
+            android:textSize="13sp"
+            android:layout_marginTop="5dp"/>
+
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="120dp"
+            android:layout_marginTop="15dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:orientation="horizontal"
+                android:gravity="bottom">
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="match_parent"
+                    android:orientation="vertical"
+                    android:gravity="bottom|center_horizontal">
+                    <View android:id="@+id/viewBarra1" android:layout_width="25dp" android:layout_height="30dp" android:background="#555555" />
+                    <TextView android:id="@+id/txtMes1" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="-" android:textColor="#888888" android:textSize="10sp"/>
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="match_parent"
+                    android:orientation="vertical"
+                    android:gravity="bottom|center_horizontal">
+                    <View android:id="@+id/viewBarra2" android:layout_width="25dp" android:layout_height="50dp" android:background="#888888" />
+                    <TextView android:id="@+id/txtMes2" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="-" android:textColor="#888888" android:textSize="10sp"/>
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="match_parent"
+                    android:orientation="vertical"
+                    android:gravity="bottom|center_horizontal">
+                    <View android:id="@+id/viewBarra3" android:layout_width="25dp" android:layout_height="80dp" android:background="#FF9800" />
+                    <TextView android:id="@+id/txtMes3" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="-" android:textColor="#FF9800" android:textStyle="bold" android:textSize="10sp"/>
+                </LinearLayout>
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/linhaMetaContainer"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_gravity="bottom"
+                android:layout_marginBottom="80dp">
+
+                <View
+                    android:layout_width="0dp"
+                    android:layout_height="1dp"
+                    android:layout_weight="1"
+                    android:background="#FF5252" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text=" META (5k) "
+                    android:textColor="#FF5252"
+                    android:textSize="9sp"
+                    android:textStyle="bold" />
+
+                <View
+                    android:layout_width="20dp"
+                    android:layout_height="1dp"
+                    android:background="#FF5252" />
+            </LinearLayout>
+        </FrameLayout>
+    </LinearLayout> <androidx.recyclerview.widget.RecyclerView
+    android:id="@+id/recyclerTodosServicos"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent" />
 
 </LinearLayout>

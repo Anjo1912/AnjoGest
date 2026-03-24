@@ -20,21 +20,25 @@ class RelatoriosActivity : AppCompatActivity() {
     private lateinit var db: DatabaseHelper
     private lateinit var recycler: RecyclerView
     private lateinit var spinnerLojasRelatorio: Spinner
-    private var filtroPeriodoAtual = "TODOS"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_relatorios)
 
         db = DatabaseHelper(this)
+
+        // Inicializando componentes
         recycler = findViewById(R.id.recyclerRelatorios)
         recycler.layoutManager = LinearLayoutManager(this)
-
         spinnerLojasRelatorio = findViewById(R.id.spinnerLojasRelatorio)
+
+        // Configuração do Spinner de Lojas
         val lojas = arrayOf("Todas as Lojas", "Anjo - IE Auto", "Universound", "Rota do Som")
-        val adapter = ArrayAdapter(this, R.layout.item_loja_spinner, lojas)
+        val adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, lojas)
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
         spinnerLojasRelatorio.adapter = adapter
 
+        // Quando trocar a loja no seletor, a lista atualiza sozinha
         spinnerLojasRelatorio.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
             override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
                 atualizarTela()
@@ -42,35 +46,33 @@ class RelatoriosActivity : AppCompatActivity() {
             override fun onNothingSelected(parent: AdapterView<*>?) {}
         }
 
-        // BOTOES DE FILTRO
-        findViewById<Button>(R.id.btnFiltroHoje).setOnClickListener { filtroPeriodoAtual = "HOJE"; atualizarTela() }
-        findViewById<Button>(R.id.btnFiltroSemana).setOnClickListener { filtroPeriodoAtual = "SEMANA"; atualizarTela() }
-        findViewById<Button>(R.id.btnFiltroTodos).setOnClickListener { filtroPeriodoAtual = "TODOS"; atualizarTela() }
-
-        // BOTÃO GERAR PDF (Apenas gera Pendentes)
+        // BOTÃO GERAR PDF (Focado em cobrança de pendentes)
         findViewById<Button>(R.id.btnGerarPDF).setOnClickListener {
             val lojaSelecionada = spinnerLojasRelatorio.selectedItem.toString()
-            val listaParaPdf = db.buscarServicosRelatorio(lojaSelecionada, filtroPeriodoAtual, true)
+            // Buscamos apenas o que está PENDENTE (true) para a loja escolhida
+            val listaParaPdf = db.buscarServicosRelatorio(lojaSelecionada, "TODOS", true)
 
             if (listaParaPdf.isNotEmpty()) {
                 gerarEPresentarPDF(listaParaPdf)
-                Toast.makeText(this, "PDF Gerado! Dê baixa manual no histórico.", Toast.LENGTH_LONG).show()
+                Toast.makeText(this, "PDF Gerado com sucesso!", Toast.LENGTH_LONG).show()
             } else {
-                Toast.makeText(this, "Nada pendente para $lojaSelecionada!", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "Não há nada pendente para $lojaSelecionada!", Toast.LENGTH_SHORT).show()
             }
         }
+
         atualizarTela()
     }
 
     private fun atualizarTela() {
         val loja = spinnerLojasRelatorio.selectedItem.toString()
-        // CORREÇÃO AQUI: Nome da variável alinhado com o que o Adapter recebe
-        val listaParaAdapter = db.buscarServicosRelatorio(loja, filtroPeriodoAtual).toMutableList()
+        // Agora o relatório mostra "TODOS" os serviços daquela loja para você conferir
+        val listaParaAdapter = db.buscarServicosRelatorio(loja, "TODOS").toMutableList()
         recycler.adapter = ServicoAdapter(listaParaAdapter) {
-            // Fica vazio pois no relatório não precisamos de clique longo
+            // Clique vazio: no relatório apenas visualizamos
         }
     }
 
+    // --- FUNÇÃO DE GERAÇÃO DO PDF ---
     fun gerarEPresentarPDF(listaServicos: List<Map<String, Any>>) {
         val pdfDocument = PdfDocument()
         val paint = Paint()
@@ -78,6 +80,7 @@ class RelatoriosActivity : AppCompatActivity() {
         val page = pdfDocument.startPage(pageInfo)
         val canvas = page.canvas
 
+        // Logo e Cabeçalho
         try {
             val drawable = ContextCompat.getDrawable(this, R.drawable.foto_logo_anjo)
             if (drawable != null) {
@@ -91,14 +94,14 @@ class RelatoriosActivity : AppCompatActivity() {
 
         paint.textSize = 22f
         paint.isFakeBoldText = true
-        canvas.drawText("ANJO – IE AUTO", 135f, 65f, paint)
+        canvas.drawText("RELATÓRIO DE COBRANÇA", 135f, 65f, paint)
 
         paint.textSize = 10f
         paint.isFakeBoldText = false
-        canvas.drawText("Serviços de Insulfilm e Envelopamento", 135f, 85f, paint)
-        canvas.drawText("WhatsApp/pix (13) 97415-0044", 135f, 105f, paint)
-        canvas.drawText("Email: anjoieauto@gmail.com", 135f, 125f, paint)
+        canvas.drawText("Anjo Gestão - Insulfilm e Envelopamento", 135f, 85f, paint)
+        canvas.drawText("WhatsApp/Pix (13) 97415-0044", 135f, 105f, paint)
 
+        // Cabeçalho da Tabela
         paint.isFakeBoldText = true
         canvas.drawText("DATA", 40f, 160f, paint)
         canvas.drawText("CARRO", 120f, 160f, paint)
@@ -110,7 +113,7 @@ class RelatoriosActivity : AppCompatActivity() {
         var totalGeral = 0.0
 
         for (item in listaServicos) {
-            val valor = item["valor"] as? Double ?: 0.0
+            val valor = (item["valor"] as? Number)?.toDouble() ?: 0.0
             totalGeral += valor
             val dataLimpa = item["data"].toString().split(" ")[0]
 
@@ -121,21 +124,20 @@ class RelatoriosActivity : AppCompatActivity() {
             y += 20f
         }
 
+        // Rodapé com Total
         paint.isFakeBoldText = true
         paint.textSize = 14f
-        canvas.drawText("TOTAL A COBRAR: ${String.format(Locale.getDefault(), "R$ %.2f", totalGeral)}", 350f, y + 30f, paint)
+        canvas.drawText("TOTAL A RECEBER: ${String.format(Locale.getDefault(), "R$ %.2f", totalGeral)}", 350f, y + 30f, paint)
 
         pdfDocument.finishPage(page)
         val pasta = getExternalFilesDir(null)
-        val arquivo = File(pasta, "Relatorio_Anjo.pdf")
+        val arquivo = File(pasta, "Relatorio_Cobranca_Anjo.pdf")
 
         try {
             pdfDocument.writeTo(FileOutputStream(arquivo))
             pdfDocument.close()
             compartilharPDF(arquivo)
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
+        } catch (e: Exception) { e.printStackTrace() }
     }
 
     private fun compartilharPDF(arquivo: File) {

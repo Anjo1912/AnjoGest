@@ -5,6 +5,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
+import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.recyclerview.widget.RecyclerView
 
@@ -73,13 +74,14 @@ class ServicoAdapter(
                             val novoStatus = if (status == "Pago") "Pendente" else "Pago"
 
                             AlertDialog.Builder(context)
-                                .setTitle("Alterar Pagamento")
-                                .setMessage("O serviço está $status. Mudar para $novoStatus?")
-                                .setPositiveButton("Sim, Alterar") { _, _ ->
+                                .setTitle("Alterar Status")
+                                .setMessage("O serviço está $status.Deseja realmente mudar para $novoStatus?")
+                                .setPositiveButton("Sim, Mudar") { _, _ ->
                                     if (db.atualizarStatus(id, novoStatus)) {
                                         (item as MutableMap<String, Any>)["status"] = novoStatus
                                         notifyItemChanged(position)
-                                        onStatusChanged(item) // Avisa a Activity para atualizar filtros
+                                        onStatusChanged(item)// Avisa a Activity para atualizar filtros
+                                        Toast.makeText(context, "Atualizado para $novoStatus", Toast.LENGTH_SHORT).show()
                                     }
                                 }
                                 .setNegativeButton("Sair", null).show()

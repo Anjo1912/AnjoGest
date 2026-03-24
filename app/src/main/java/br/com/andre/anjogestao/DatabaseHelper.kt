@@ -9,14 +9,11 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-// Subimos para a versão 12 para forçar o Android a criar as tabelas corretamente
 class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, "AnjoGestao.db", null, 12) {
 
     override fun onCreate(db: SQLiteDatabase) {
-        // Tabela de Serviços
         db.execSQL("CREATE TABLE IF NOT EXISTS servicos (id INTEGER PRIMARY KEY AUTOINCREMENT, loja TEXT, modelo TEXT, servico TEXT, valor REAL, status TEXT, data TEXT)")
 
-        // Tabela de Vistorias
         db.execSQL("""
             CREATE TABLE IF NOT EXISTS vistorias (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -29,13 +26,13 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, "AnjoGestao.d
 
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
         if (oldVersion < 12) {
-            // Se a tabela de vistorias não existia nas versões anteriores, criamos agora
+            db.execSQL("DROP TABLE IF EXISTS servicos")
             db.execSQL("DROP TABLE IF EXISTS vistorias")
             onCreate(db)
         }
     }
 
-    // --- 1. SALVAR NOVO SERVIÇO ---
+    // --- SERVIÇOS ---
     fun salvarServico(loja: String, modelo: String, servico: String, valor: Double, status: String, data: String): Boolean {
         val db = this.writableDatabase
         val v = ContentValues().apply {
@@ -46,12 +43,9 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, "AnjoGestao.d
             put("status", status)
             put("data", data)
         }
-        val resultado = db.insert("servicos", null, v)
-        if (resultado == -1L) Log.e("DB_ERROR", "Falha ao inserir serviço")
-        return resultado != -1L
+        return db.insert("servicos", null, v) != -1L
     }
 
-    // --- 2. ATUALIZAR SERVIÇO (EDIÇÃO) ---
     fun atualizarServicoCompleto(id: Int, loja: String, modelo: String, servico: String, valor: Double): Boolean {
         val db = this.writableDatabase
         val v = ContentValues().apply {
@@ -63,22 +57,18 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, "AnjoGestao.d
         return db.update("servicos", v, "id = ?", arrayOf(id.toString())) > 0
     }
 
-    // --- 3. ATUALIZAR STATUS (PAGO/PENDENTE) ---
     fun atualizarStatus(id: Int, novoStatus: String): Boolean {
         val db = this.writableDatabase
         val v = ContentValues().apply { put("status", novoStatus) }
         return db.update("servicos", v, "id = ?", arrayOf(id.toString())) > 0
     }
 
-    // --- 4. BUSCAR PARA LISTAGEM E RELATÓRIO ---
     fun buscarServicosRelatorio(loja: String, periodo: String, apenasPendentes: Boolean = false): List<Map<String, Any>> {
         val lista = mutableListOf<Map<String, Any>>()
         val db = this.readableDatabase
         var query = "SELECT * FROM servicos WHERE 1=1"
-
         if (loja != "Todas as Lojas") query += " AND loja = '$loja'"
         if (apenasPendentes) query += " AND (status = 'Pendente' OR status IS NULL OR status = '')"
-
         query += " ORDER BY id DESC"
 
         val cursor = db.rawQuery(query, null)
@@ -103,7 +93,26 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, "AnjoGestao.d
 
     fun excluirServico(id: Int) = this.writableDatabase.delete("servicos", "id = ?", arrayOf(id.toString())) > 0
 
-    // --- 5. SALVAR VISTORIA (FOTOS E ASSINATURA) ---
+    // --- FATURAMENTO PARA O RELATÓRIO E GRÁFICO ---
+    fun obterFaturamentoPorMes(): Map<String, Double> {
+        val dados = mutableMapOf<String, Double>()
+        val db = this.readableDatabase
+        // CORREÇÃO: "ORDER" com 'O' e não com zero '0'. Removido vírgula extra.
+        val query = "SELECT substr(data, 4, 7) as mes_ano, SUM(valor) as total FROM servicos WHERE status = 'Pago' GROUP BY mes_ano ORDER BY id DESC LIMIT 6"
+
+        val cursor = db.rawQuery(query, null)
+        if (cursor.moveToFirst()) {
+            do {
+                val mesAno = cursor.getString(0) // Ex: 03/2026
+                val total = cursor.getDouble(1)
+                dados[mesAno] = total
+            } while (cursor.moveToNext())
+        }
+        cursor.close()
+        return dados
+    }
+
+    // --- VISTORIAS ---
     fun salvarVistoriaCompleta(cliente: String, placa: String, km: String, pOff: String?, pOn: String?, frente: String?, tras: String?, ass: String?, obs: String): Boolean {
         val db = this.writableDatabase
         val v = ContentValues().apply {
@@ -118,7 +127,6 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, "AnjoGestao.d
             put("observacoes", obs)
             put("data_hora", SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault()).format(Date()))
         }
-        val resultado = db.insert("vistorias", null, v)
-        return resultado != -1L
+        return db.insert("vistorias", null, v) != -1L
     }
 }
